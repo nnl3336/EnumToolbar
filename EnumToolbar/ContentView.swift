@@ -52,6 +52,9 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         }
     }
     
+    private var selectedItems: Set<MenuCell> = []   // ← ここで保持
+
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -66,26 +69,30 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
     
     // UITableViewDelegate
     func tableView(_ tableView: UITableView,
-                   contextMenuConfigurationForRowAt indexPath: IndexPath,
-                   point: CGPoint) -> UIContextMenuConfiguration? {
-        
-        print("長押し判定 indexPath.row: \(indexPath.row)")
+                       contextMenuConfigurationForRowAt indexPath: IndexPath,
+                       point: CGPoint) -> UIContextMenuConfiguration? {
 
-        if indexPath.row == 0 {
-            return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
-                let action1 = UIAction(title: "アクション1", image: UIImage(systemName: "star")) { _ in
-                    print("アクション1")
+            print("長押し判定 indexPath.row: \(indexPath.row)")
+
+            if indexPath.row == 0 {
+                return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+                    guard let self = self else {
+                        // nil ではなく空のメニューを返す
+                        return UIMenu(title: "", children: [])
+                    }
+
+                    let selectAction = UIAction(title: "Select", image: UIImage(systemName: "checkmark")) { _ in
+                        // セル選択処理
+                    }
+                    let action1 = UIAction(title: "アクション1", image: UIImage(systemName: "star")) { _ in }
+                    let action2 = UIAction(title: "アクション2", image: UIImage(systemName: "trash")) { _ in }
+
+                    return UIMenu(title: "メニュー", children: [selectAction, action1, action2])
                 }
-                let action2 = UIAction(title: "アクション2", image: UIImage(systemName: "trash")) { _ in
-                    print("アクション2")
-                }
-                return UIMenu(title: "メニュー", children: [action1, action2])
+            } else {
+                return nil
             }
-        } else {
-            // それ以外はメニュー無し
-            return nil
         }
-    }
     
 
 
