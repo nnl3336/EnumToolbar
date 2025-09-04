@@ -58,7 +58,37 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         setupToolbar()
         setupTableView()  // toolbarの上にテーブルを配置
         updateToolbar()
+        
+        tableView.delegate = self
+        tableView.dataSource = self
+
     }
+    
+    // UITableViewDelegate
+    func tableView(_ tableView: UITableView,
+                   contextMenuConfigurationForRowAt indexPath: IndexPath,
+                   point: CGPoint) -> UIContextMenuConfiguration? {
+        
+        print("長押し判定 indexPath.row: \(indexPath.row)")
+
+        if indexPath.row == 0 {
+            return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+                let action1 = UIAction(title: "アクション1", image: UIImage(systemName: "star")) { _ in
+                    print("アクション1")
+                }
+                let action2 = UIAction(title: "アクション2", image: UIImage(systemName: "trash")) { _ in
+                    print("アクション2")
+                }
+                return UIMenu(title: "メニュー", children: [action1, action2])
+            }
+        } else {
+            // それ以外はメニュー無し
+            return nil
+        }
+    }
+    
+
+
 
     
     // MARK: - Setup
@@ -101,6 +131,8 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
             
         case .selecting:
             bottomToolbar.items = [
+                UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped)),
+                UIBarButtonItem.flexibleSpace(),
                 UIBarButtonItem(title: "Move", style: .plain, target: self, action: #selector(moveTapped)),
                 UIBarButtonItem.flexibleSpace(),
                 UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteTapped))
@@ -115,6 +147,16 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         }
     }
     
+    @objc private func cancelTapped() {
+        toolbarState = .normal
+        tableView.allowsMultipleSelection = false
+        if let selected = tableView.indexPathsForSelectedRows {
+            for indexPath in selected {
+                tableView.deselectRow(at: indexPath, animated: true)
+            }
+        }
+    }
+    
     // MARK: - Actions
     @objc private func addTapped() {
         let newCell = MenuCell(title: "セル \(cells.count + 1)")
@@ -125,7 +167,6 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
     @objc private func editTapped() { toolbarState = .editing }
     @objc private func moveTapped() { print("Move") }
     @objc private func deleteTapped() { print("Delete") }
-    @objc private func cancelTapped() { toolbarState = .normal }
     @objc private func saveTapped() { toolbarState = .normal }
     
     // MARK: - TableView DataSource
