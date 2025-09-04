@@ -56,6 +56,8 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         didSet { updateToolbar() }
     }
     
+    private var isSelecting: Bool = false
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -79,6 +81,7 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         ])
     }
     
+    // MARK: - UITableView を画面に配置して設定するためのメソッド
     private func setupTableView() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
@@ -166,8 +169,26 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
     
     // MARK: - ユーザーがセルをタップして選択したときに呼ばれる関数
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let menuCell = cells[indexPath.row]
+
+        // selectedItems が空ならタップでは選択不可
+        guard !isSelecting else {
+            print("Tap!")
+            return
+        }
+
+        // トグル処理
+        if selectedItems.contains(menuCell) {
+            selectedItems.remove(menuCell)
+            tableView.deselectRow(at: indexPath, animated: true)
+        } else {
+            selectedItems.insert(menuCell)
+            tableView.selectRow(at: indexPath, animated: true, scrollPosition: .none)
+        }
+
         toolbarState = .selecting
     }
+
     
     // MARK: - ユーザーがセルの選択を解除したときに呼ばれ
     func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
@@ -202,10 +223,14 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
             let toggleAction = UIAction(title: self.selectedItems.contains(menuCell) ? "Deselect" : "Select") { _ in
                 if self.selectedItems.contains(menuCell) {
                     self.selectedItems.remove(menuCell)
+                    if self.selectedItems.isEmpty {
+                        self.isSelecting = false
+                    }
                     tableView.deselectRow(at: indexPath, animated: true)
                 } else {
                     self.selectedItems.insert(menuCell)
                     tableView.selectRow(at: indexPath, animated: true, scrollPosition: .none)
+                    self.isSelecting = true
                 }
                 self.toolbarState = .selecting
                 print("Selected Items: \(self.selectedItems.map { $0.title })")
