@@ -42,35 +42,35 @@ struct MenuCell: Identifiable, Hashable {
 }
 
 class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-
+    
     // MARK: - UI
     private var tableView = UITableView()
     private var bottomToolbar: UIToolbar = UIToolbar()
-
+    
     // MARK: - Data
     private var cells: [MenuCell] = []
     private var selectedItems = Set<MenuCell>()
-
+    
     // MARK: - State
     private var toolbarState: ToolbarState = .normal {
         didSet { updateToolbar() }
     }
-
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-
+        
         setupToolbar()
         setupTableView()
         updateToolbar()
     }
-
+    
     // MARK: - Setup
     private func setupToolbar() {
         bottomToolbar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(bottomToolbar)
-
+        
         NSLayoutConstraint.activate([
             bottomToolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomToolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -78,24 +78,24 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
             bottomToolbar.heightAnchor.constraint(equalToConstant: 44)
         ])
     }
-
+    
     private func setupTableView() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
-
+        
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: bottomToolbar.topAnchor)
         ])
-
+        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.allowsMultipleSelection = true
     }
-
+    
     // MARK: - Toolbar Update
     private func updateToolbar() {
         switch toolbarState {
@@ -121,14 +121,14 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
             ]
         }
     }
-
+    
     // MARK: - Actions
     @objc private func addTapped() {
         let newCell = MenuCell(title: "セル \(cells.count + 1)")
         cells.append(newCell)
         tableView.reloadData()
     }
-
+    
     @objc private func editTapped() { toolbarState = .editing }
     @objc private func moveTapped() { print("Move") }
     @objc private func deleteTapped() { print("Delete") }
@@ -140,30 +140,42 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         }
         selectedItems.removeAll()
     }
-
-    // MARK: - UITableViewDataSource
+    
+    
+    
+    
+    // MARK: - UITableViewDataSource　ソース
+    
+    // MARK: - 指定したセクションにいくつのセル（行）があるかを返す関数
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         cells.count
     }
-
+    
+    // MARK: - テーブルビューに表示するセルを返すための関数
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         let menuCell = cells[indexPath.row]
         cell.textLabel?.text = menuCell.title
         return cell
     }
-
-    // MARK: - UITableViewDelegate
+    
+    
+    
+    
+    // MARK: - UITableViewDelegate　デリゲート
+    
+    // MARK: - ユーザーがセルをタップして選択したときに呼ばれる関数
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         toolbarState = .selecting
     }
-
+    
+    // MARK: - ユーザーがセルの選択を解除したときに呼ばれ
     func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
         if tableView.indexPathsForSelectedRows == nil {
             toolbarState = .normal
         }
     }
-
+    
     // MARK: - Context Menu (長押し)
     func tableView(_ tableView: UITableView,
                    contextMenuConfigurationForRowAt indexPath: IndexPath,
@@ -172,15 +184,22 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
         let menuCell = cells[indexPath.row]
 
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            guard let self = self else {
-                return UIMenu(title: "", children: [])
+            guard let self = self else { return UIMenu(title: "", children: []) }
+
+            // まだ selectedItems が空なら、長押ししたセルを追加
+            // 長押しで初めての選択
+            if self.selectedItems.isEmpty {
+                self.selectedItems.insert(menuCell)
+                
+                // セルの選択状態を反映
+                tableView.selectRow(at: indexPath, animated: true, scrollPosition: .none)
+                
+                self.toolbarState = .selecting
+                print("初めての選択: \(menuCell.title)")
             }
 
-            // 選択できない場合は非活性
-            let attributes: UIMenuElement.Attributes =
-                self.selectedItems.contains(menuCell) ? [] : []
-
-            let selectAction = UIAction(title: "Select", attributes: attributes) { _ in
+            // トグルアクション（2個目以降）
+            let toggleAction = UIAction(title: self.selectedItems.contains(menuCell) ? "Deselect" : "Select") { _ in
                 if self.selectedItems.contains(menuCell) {
                     self.selectedItems.remove(menuCell)
                     tableView.deselectRow(at: indexPath, animated: true)
@@ -189,13 +208,14 @@ class SlideMenuViewController: UIViewController, UITableViewDelegate, UITableVie
                     tableView.selectRow(at: indexPath, animated: true, scrollPosition: .none)
                 }
                 self.toolbarState = .selecting
-                print("Selected: \(self.selectedItems.map { $0.title })")
+                print("Selected Items: \(self.selectedItems.map { $0.title })")
             }
 
             let action1 = UIAction(title: "アクション1") { _ in print("アクション1") }
             let action2 = UIAction(title: "アクション2") { _ in print("アクション2") }
 
-            return UIMenu(title: "メニュー", children: [selectAction, action1, action2])
+            return UIMenu(title: "メニュー", children: [toggleAction, action1, action2])
         }
     }
+
 }
